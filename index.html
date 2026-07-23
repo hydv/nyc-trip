@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>NEW YORK CITY TRIP / 8.22 → 8.28</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --paper:#F3ECDC; --paper-card:#FBF7EC; --ink:#1C2B44; --ink-soft:#5B6B85;
+    --gold:#C08A28; --line:#D8CBA8;
+    --d1:#E15D3E; --d2:#2C6E9E; --d3:#4B8B5E; --d4:#935E8C; --d5:#C79A3B; --d6:#1E93A0; --d7:#7C7466;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;}
+  body{background:var(--paper);color:var(--ink);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;}
+  .app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+
+  .fixed-top{flex:0 0 50vh;flex:0 0 50dvh;display:flex;flex-direction:column;background:var(--ink);min-height:0;}
+  .resizer{flex:0 0 16px;background:var(--paper);display:flex;align-items:center;justify-content:center;cursor:ns-resize;touch-action:none;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .resizer-grip{width:44px;height:5px;border-radius:100px;background:var(--line);}
+  .resizer:active .resizer-grip{background:var(--gold);}
+  .topbar{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;padding:8px 14px;color:var(--paper);}
+  .topbar .ttl{font-family:'Fraunces',serif;font-weight:800;font-size:14px;}
+  .topbar .ttl span{color:var(--gold);}
+  .topbar .dt{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#C9BFA0;letter-spacing:.05em;}
+  .map-holder{flex:1 1 auto;position:relative;min-height:0;}
+  #map{position:absolute;inset:0;background:#DCE7EA;}
+  .map-fallback{display:none;position:absolute;inset:0;z-index:400;background:var(--paper-card);padding:16px;font-size:12px;color:var(--ink-soft);line-height:1.7;overflow-y:auto;}
+  .map-fallback b{color:var(--ink);}
+  .pin{width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.35);}
+  .pin span{transform:rotate(45deg);font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;}
+  .leaflet-tooltip.pin-tip{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;background:var(--ink);color:#fff;border:none;padding:3px 8px;border-radius:6px;}
+  .leaflet-tooltip.pin-tip::before{border-top-color:var(--ink);}
+
+  .scroll-area{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;}
+  .wrap{max-width:520px;margin:0 auto;padding:14px 16px 90px;}
+  .section-label{display:flex;align-items:center;gap:10px;margin:26px 0 12px;}
+  .section-label:first-child{margin-top:2px;}
+  .section-label .num{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold);border:1px solid var(--gold);border-radius:100px;padding:3px 9px;letter-spacing:.06em;}
+  .section-label h2{font-family:'Fraunces',serif;font-weight:700;font-size:18px;margin:0;}
+  .legend-card{background:var(--paper-card);border:1px solid var(--line);border-radius:14px;padding:14px 16px 12px;}
+  .legend-days{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:12px;}
+  .legend-chip{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex:none;border:1.5px solid var(--ink);}
+  .legend-transport{display:flex;flex-wrap:wrap;gap:12px;padding-top:10px;border-top:1px dashed var(--line);}
+  .legend-line-item{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-soft);}
+  .day-card{background:var(--paper-card);border:1px solid var(--line);border-radius:14px;margin-top:16px;overflow:hidden;}
+  .day-head{display:flex;justify-content:space-between;align-items:flex-end;padding:13px 16px 11px;color:#fff;gap:8px;}
+  .day-head .d-date{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;opacity:.85;}
+  .day-head h3{font-family:'Fraunces',serif;font-weight:700;font-size:18px;margin:2px 0 0;}
+  .day-head .d-area{font-size:11px;font-weight:500;opacity:.9;text-align:right;line-height:1.4;}
+  .timeline{padding:10px 16px 14px;}
+  .stop{display:grid;grid-template-columns:30px 44px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);align-items:start;}
+  .stop:last-child{border-bottom:none;}
+  .pinnum{width:20px;height:20px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;border:1.5px solid var(--ink);margin-top:1px;}
+  .nopin{width:20px;}
+  .stop .t{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:var(--ink-soft);padding-top:2px;}
+  .stop .info .name{font-size:14px;font-weight:600;color:var(--ink);}
+  .stop .info .desc{font-size:12.5px;color:var(--ink-soft);margin-top:2px;line-height:1.5;}
+  .tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.04em;color:var(--gold);border:1px solid var(--gold);border-radius:100px;padding:1px 7px;margin-top:5px;}
+  .day-note{margin:0 16px 14px;padding:10px 12px;background:var(--paper);border-left:3px solid var(--gold);font-size:12px;color:var(--ink-soft);line-height:1.6;border-radius:0 8px 8px 0;}
+  .area-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12.5px;background:var(--paper-card);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .area-table th{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--paper);padding:8px 10px;text-align:left;}
+  .area-table td{padding:8px 10px;border-top:1px solid var(--line);}
+  .area-table tr td:first-child{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--ink-soft);white-space:nowrap;}
+  footer{text-align:center;margin-top:32px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);letter-spacing:.08em;}
+
+  /* ---------- EDIT MODE ---------- */
+  .fab{position:fixed;right:16px;bottom:16px;z-index:1000;background:var(--ink);color:#fff;border:none;border-radius:100px;padding:13px 20px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer;letter-spacing:.04em;}
+  .fab.active{background:var(--gold);color:var(--ink);}
+  .stop.editing{display:block;background:#fff;border:1px solid var(--gold);border-radius:10px;padding:10px;margin-bottom:8px;}
+  .ed{font-family:'Inter',sans-serif;font-size:12.5px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);width:100%;margin-top:3px;}
+  .ed-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--ink-soft);letter-spacing:.05em;text-transform:uppercase;margin-top:6px;display:block;}
+  .ed-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .ed-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .edit-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end;}
+  .icon-btn{border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'IBM Plex Mono',monospace;}
+  .icon-btn.danger{border-color:#c0392b;color:#c0392b;}
+  .add-stop-btn{display:block;width:calc(100% - 32px);margin:6px 16px 14px;padding:9px;border:1.5px dashed var(--gold);background:transparent;color:var(--gold);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;}
+  .day-head input.ed{background:rgba(255,255,255,.9);color:var(--ink);font-size:12px;padding:4px 7px;margin:2px 0;}
+  .day-head-edit{flex:1;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="fixed-top">
+    <div class="topbar">
+      <div class="ttl">NEW YORK<span>TRIP</span></div>
+      <div class="dt" id="syncDot">AUG 22–28, 2026</div>
+    </div>
+    <div class="map-holder">
+      <div id="map"></div>
+      <div id="fallback" class="map-fallback">
+        <b>地図タイルが読み込めませんでした。</b><br><br>
+        このチャット内プレビューは外部の地図画像を読み込めない場合があります。お手数ですが、ファイルをダウンロードしてブラウザで直接開くと実際の地図が表示されます。
+      </div>
+    </div>
+  </div>
+
+  <div id="resizer" class="resizer"><div class="resizer-grip"></div></div>
+
+  <div class="scroll-area">
+    <div class="wrap">
+
+      <div class="section-label"><span class="num">00</span><h2>凡例・見方</h2></div>
+      <div class="legend-card">
+        <div class="legend-days" id="legend-days"></div>
+        <div class="legend-transport">
+          <div class="legend-line-item"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="#1C2B44" stroke-width="2.5"/></svg>徒歩</div>
+          <div class="legend-line-item"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="#1C2B44" stroke-width="2.5" stroke-dasharray="5,3"/></svg>地下鉄</div>
+          <div class="legend-line-item"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="#1C2B44" stroke-width="2.5" stroke-dasharray="1,3.4" stroke-linecap="round"/></svg>フェリー</div>
+          <div class="legend-line-item"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="#1C2B44" stroke-width="2.5" stroke-dasharray="8,3,1,3"/></svg>車</div>
+        </div>
+      </div>
+
+      <div id="schedule-root"></div>
+
+      <div class="section-label"><span class="num">SUMMARY</span><h2>日程・エリア一覧</h2></div>
+      <table class="area-table" id="area-table"></table>
+
+      <footer>NYC TRIP PLAN — AUG 2026 / Map data © OpenStreetMap contributors</footer>
+    </div>
+  </div>
+</div>
+
+<button id="editFab" class="fab">✎ 編集</button>
+
+<script>
+window.addEventListener('load', function(){
+try{
+
+var COLORS = { d1:"#E15D3E", d2:"#2C6E9E", d3:"#4B8B5E", d4:"#935E8C", d5:"#C79A3B", d6:"#1E93A0", d7:"#7C7466" };
+var DASH = { none:null, walk:null, subway:"6,5", ferry:"1,3.4", car:"8,3,1,3" };
+
+var DAYS = [
+  { date:'8/22', weekday:'SAT', title:'到着・Times Square', area:'Times Square（徒歩）', color:'d1', note:null, stops:[
+    {time:'18:05', name:'EWR（ニューアーク空港）到着', desc:'到着。市内のホテルへ移動。', lat:40.6895, lon:-74.1745, transport:'none', excludeFromFit:true},
+    {time:'20:30', name:'The Westin New York at Times Square', desc:'タイムズスクエア徒歩圏の大型ホテル。チェックイン。', lat:40.7593, lon:-73.9871, transport:'none'},
+    {time:'21:00', name:'タイムズスクエア', desc:'巨大電飾看板が並ぶNY屈指の観光名所。夜も賑やか。', lat:40.7580, lon:-73.9855, transport:'walk'},
+    {time:'21:30', name:"Carmine's", desc:'大皿シェアスタイルの人気イタリアン。', tag:'事前予約推奨', lat:40.7589, lon:-73.9847, transport:'walk'}
+  ]},
+  { date:'8/23', weekday:'SUN', title:'Financial District・World Trade Center', area:'Downtown Manhattan（徒歩＋地下鉄）', color:'d2', note:null, stops:[
+    {time:'10:30', name:'Battery Park', desc:'マンハッタン最南端の公園。自由の女神行きフェリー乗り場。', lat:40.7033, lon:-74.0170, transport:'none'},
+    {time:'11:30', name:'自由の女神', desc:'NYの象徴的モニュメント。内部見学は所要3〜4時間。', tag:'事前予約推奨', lat:40.6892, lon:-74.0445, transport:'ferry'},
+    {time:'15:30', name:'Wall Street', desc:'世界的な金融街のシンボル通り。', lat:40.7074, lon:-74.0113, transport:'ferry'},
+    {time:'16:00', name:'Oculus', desc:'白い翼のような近未来建築の交通ハブ兼ショッピングモール。', lat:40.7115, lon:-74.0134, transport:'walk'},
+    {time:'17:30', name:'One World Observatory', desc:'ワン・ワールド・トレード・センターの展望台。', tag:'事前予約推奨', lat:40.7127, lon:-74.0134, transport:'walk'},
+    {time:'19:30', name:'ブロードウェイ観劇①', desc:'Minskoff Theatreにて鑑賞。', tag:'事前予約推奨', lat:40.7571, lon:-73.9847, transport:'subway'}
+  ]},
+  { date:'8/24', weekday:'MON', title:'Midtown East・5番街', area:'Midtown East（徒歩）', color:'d3', note:null, stops:[
+    {time:'09:00', name:"Macy's Herald Square", desc:'世界最大級のフロア面積を誇る老舗百貨店。', lat:40.7505, lon:-73.9884, transport:'none'},
+    {time:'10:00', name:'ニューヨーク公共図書館', desc:'大理石のライオン像で有名な歴史的建築の図書館。', lat:40.7532, lon:-73.9822, transport:'walk'},
+    {time:'11:00', name:'Bryant Park', desc:'図書館に隣接する都心のオアシス的公園。', lat:40.7536, lon:-73.9832, transport:'walk'},
+    {time:'11:30', name:'Grand Central Terminal', desc:'天井のフレスコ画で知られる歴史的ターミナル駅。', lat:40.7527, lon:-73.9772, transport:'walk'},
+    {time:'12:30', name:'昼食', desc:'周辺エリアで自由に。', lat:null, lon:null, transport:'walk'},
+    {time:'14:00', name:'Tiffany & Co. Landmark', desc:'ブランド旗艦店。ショーウィンドウも見どころ。', lat:40.7638, lon:-73.9740, transport:'walk'},
+    {time:'15:00', name:"St. Patrick's Cathedral", desc:'ゴシック様式の壮麗な大聖堂。入場無料。', lat:40.7585, lon:-73.9760, transport:'walk'},
+    {time:'15:30', name:'Rockefeller Center', desc:'オフィス・商業施設が集まる複合エリア。', lat:40.7587, lon:-73.9787, transport:'walk'},
+    {time:'18:00', name:'Top of the Rock', desc:'夕景〜夜景を一望できる展望台。', tag:'事前予約推奨', lat:40.7593, lon:-73.9789, transport:'walk'},
+    {time:'20:00', name:'ブロードウェイ観劇②', desc:'Richard Rodgers Theatreにて鑑賞。', tag:'事前予約推奨', lat:40.7595, lon:-73.9862, transport:'walk'}
+  ]},
+  { date:'8/25', weekday:'TUE', title:'セントラルパーク・美術館', area:'Upper East → West Side（徒歩）', color:'d4',
+    note:'この日にまとめる理由：セントラルパークが東西をつなぐため。The Met・グッゲンハイムは東側、自然史博物館は西側だが、公園を横切るだけで比較的スムーズに移動できる。', stops:[
+    {time:'09:00', name:'Central Park', desc:'マンハッタン中央に広がる大公園。エリアの東西をつなぐ。', lat:40.7644, lon:-73.9736, transport:'none'},
+    {time:'10:00', name:'Metropolitan Museum of Art', desc:'世界屈指の規模を誇る総合美術館。', lat:40.7794, lon:-73.9632, transport:'walk'},
+    {time:'13:30', name:'昼食', desc:'The Met周辺で。', lat:null, lon:null, transport:'walk'},
+    {time:'15:00', name:'Solomon R. Guggenheim Museum', desc:'フランク・ロイド・ライト設計の螺旋型美術館。', lat:40.7830, lon:-73.9590, transport:'walk'},
+    {time:'16:30', name:'セントラルパーク横断', desc:'散策しながら公園を東から西へ移動。', lat:null, lon:null, transport:'walk'},
+    {time:'17:00', name:'American Museum of Natural History', desc:'恐竜化石など展示する大型自然史博物館。', lat:40.7813, lon:-73.9740, transport:'walk'},
+    {time:'19:00', name:'夕食', desc:'Upper West Sideエリアで。', lat:null, lon:null, transport:'walk'}
+  ]},
+  { date:'8/26', weekday:'WED', title:'MoMA・Chelsea・Hudson Yards', area:'Midtown → Chelsea → Hudson Yards（地下鉄＋徒歩）', color:'d5',
+    note:'徒歩主体で回れる一日。MoMA〜Chelsea間のみ地下鉄移動。', stops:[
+    {time:'10:30', name:'MoMA', desc:'近現代アートを代表する美術館。', tag:'事前予約推奨', lat:40.7614, lon:-73.9776, transport:'none'},
+    {time:'13:30', name:'Starbucks Reserve Roastery', desc:'焙煎工程が見学できる体験型旗艦店。', lat:40.7423, lon:-74.0056, transport:'subway'},
+    {time:'14:30', name:'Chelsea Market', desc:'レンガ造り倉庫を改装したフードホール。昼食に。', lat:40.7424, lon:-74.0061, transport:'walk'},
+    {time:'16:00', name:'Little Island', desc:'ハドソン川に浮かぶ人工島の公園。', lat:40.7405, lon:-74.0141, transport:'walk'},
+    {time:'16:45', name:'High Line', desc:'廃線となった高架鉄道を再生した遊歩道。', lat:40.7460, lon:-74.0075, transport:'walk'},
+    {time:'18:00', name:'Vessel', desc:'Hudson Yards内の螺旋階段型モニュメント。', lat:40.7538, lon:-74.0022, transport:'walk'},
+    {time:'19:00', name:'夕食', desc:'Hudson Yards周辺で。', lat:null, lon:null, transport:'walk'}
+  ]},
+  { date:'8/27', weekday:'THU', title:'Coney Island', area:'Coney Island（地下鉄＋徒歩）', color:'d6',
+    note:'Coney Islandはマンハッタン中心部から地下鉄で約1時間。この日はコニーアイランドを主役にするのがおすすめ。夕食もコニーアイランド内で完結させ、移動の動線を短くしている。', stops:[
+    {time:'午前', name:'Coney Island到着・ボードウォーク散策', desc:'地下鉄でマンハッタンから約60分。海沿いの遊歩道を散策。', lat:40.5773, lon:-73.9810, transport:'subway'},
+    {time:'昼', name:'Luna Park', desc:'コニーアイランドの遊園地。', lat:40.5744, lon:-73.9800, transport:'walk'},
+    {time:'〃', name:'Cyclone', desc:'歴史的な木製ジェットコースター。', lat:40.5744, lon:-73.9788, transport:'walk'},
+    {time:'〃', name:"Nathan's Famous 本店", desc:'名物ホットドッグの老舗。昼食に。', lat:40.5747, lon:-73.9814, transport:'walk'},
+    {time:'午後', name:"Deno's Wonder Wheel", desc:'歴史ある大観覧車。', lat:40.5738, lon:-73.9776, transport:'walk'},
+    {time:'〃', name:'Steeplechase Pier', desc:'海に伸びる桟橋。', lat:40.5722, lon:-73.9838, transport:'walk'},
+    {time:'〃', name:'ビーチ', desc:'のんびり休憩。', lat:40.5722, lon:-73.9800, transport:'walk'},
+    {time:'〃', name:'New York Aquarium', desc:'水族館。時間があれば立ち寄り。', lat:40.5747, lon:-73.9709, transport:'walk'},
+    {time:'19:00', name:"Totonno's Pizzeria Napolitano", desc:'1924年創業、コニーアイランド地元の老舗コールオーブンピザ店。マンハッタンへ戻らず地区内で夕食を完結。現金のみ・行列必至。', lat:40.5776, lon:-73.9847, transport:'walk'},
+    {time:'夜', name:'マンハッタンへ戻る', desc:'夕食後、地下鉄でホテルへ。', lat:null, lon:null, transport:'subway'}
+  ]},
+  { date:'8/28', weekday:'FRI', title:'帰国', area:'Newark Airport', color:'d7', note:null, stops:[
+    {time:'05:30', name:'ホテル出発', desc:'', lat:null, lon:null, transport:'none'},
+    {time:'10:30', name:'EWR（ニューアーク空港）出発', desc:'', lat:null, lon:null, transport:'none'}
+  ]}
+];
+
+var editMode = false;
+var map, tileLayer;
+var mapLayers = [];
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function blankStop(){ return {time:'', name:'新しい施設', desc:'', tag:null, lat:null, lon:null, transport:'walk'}; }
+
+/* ================= SHARED STORAGE (Firebase Firestore) =================
+   1. Create a free project at https://console.firebase.google.com
+   2. Build > Firestore Database > Create database (start in test mode)
+   3. Project settings > General > "Your apps" > Web app (</>) > copy the config object below
+   4. Paste your own values into firebaseConfig (replace every "YOUR_..." placeholder)
+   Until you do this, the page still works perfectly — it just won't sync between devices.
+============================================================================ */
+var firebaseConfig = {
+  apiKey: "AIzaSyACNGH1yB6VxvIn94IsXG1IaRghGYvZnoM",
+  authDomain: "nyc-trip-f7204.firebaseapp.com",
+  projectId: "nyc-trip-f7204",
+  storageBucket: "nyc-trip-f7204.firebasestorage.app",
+  messagingSenderId: "643016826569",
+  appId: "1:643016826569:web:6e1c3903c36d0df2c5b718"
+};
+
+var syncEnabled = firebaseConfig.apiKey.indexOf('YOUR_') !== 0;
+var docRef = null;
+var lastSyncedJSON = null;
+var applyingRemote = false;
+
+function setSyncDot(color, title){
+  var el = document.getElementById('syncDot');
+  if(!el) return;
+  el.style.color = color || '#C9BFA0';
+  if(title) el.title = title;
+}
+
+function isEditingFocused(){
+  var a = document.activeElement;
+  return a && (a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.tagName==='SELECT');
+}
+
+function initSync(){
+  if(!syncEnabled) return;
+  try{
+    firebase.initializeApp(firebaseConfig);
+    docRef = firebase.firestore().collection('nyc-trip-plan').doc('itinerary');
+  }catch(e){ console.error('Firebase init failed', e); syncEnabled = false; }
+}
+
+function loadSyncedData(){
+  if(!syncEnabled || !docRef) return Promise.resolve();
+  return docRef.get().then(function(snap){
+    if(snap.exists && snap.data() && snap.data().days){
+      DAYS = snap.data().days;
+      lastSyncedJSON = JSON.stringify(DAYS);
+    } else {
+      lastSyncedJSON = JSON.stringify(DAYS);
+      docRef.set({ days: DAYS, updatedAt: Date.now() });
+    }
+    setSyncDot('#6fbf73', '同期中');
+    listenForRemoteChanges();
+  }).catch(function(e){
+    console.error('load failed', e);
+    setSyncDot('#c0392b', '同期エラー');
+  });
+}
+
+function listenForRemoteChanges(){
+  docRef.onSnapshot(function(snap){
+    if(!snap.exists || !snap.data() || !snap.data().days) return;
+    var json = JSON.stringify(snap.data().days);
+    if(json === lastSyncedJSON) return;
+    lastSyncedJSON = json;
+    if(isEditingFocused()) return; // don't disrupt someone mid-edit
+    DAYS = snap.data().days;
+    applyingRemote = true;
+    renderSchedule(); renderMap(); renderLegend(); renderAreaTable();
+    applyingRemote = false;
+  }, function(e){ console.error('listen failed', e); setSyncDot('#c0392b','同期エラー'); });
+}
+
+function saveSyncedData(){
+  if(!syncEnabled || !docRef || applyingRemote) return;
+  var json = JSON.stringify(DAYS);
+  if(json === lastSyncedJSON) return;
+  lastSyncedJSON = json;
+  docRef.set({ days: DAYS, updatedAt: Date.now() }).catch(function(e){
+    console.error('save failed', e); setSyncDot('#c0392b','保存エラー');
+  });
+}
+
+/* ================= MAP ================= */
+function initMap(){
+  map = L.map('map', {scrollWheelZoom:false, zoomControl:true});
+  var tileLoaded = false;
+  tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'&copy; OpenStreetMap contributors', maxZoom:19, subdomains:'abc'
+  });
+  tileLayer.on('tileload', function(){ tileLoaded = true; });
+  tileLayer.on('tileerror', function(){ document.getElementById('fallback').style.display='block'; });
+  tileLayer.addTo(map);
+  setTimeout(function(){ if(!tileLoaded){ document.getElementById('fallback').style.display='block'; } }, 3500);
+}
+
+function pinIcon(color, num){
+  return L.divIcon({ className:"", html:'<div class="pin" style="background:'+color+'"><span>'+num+'</span></div>', iconSize:[22,22], iconAnchor:[11,22], tooltipAnchor:[0,-20] });
+}
+
+function renderMap(){
+  mapLayers.forEach(function(l){ map.removeLayer(l); });
+  mapLayers = [];
+  var fitPts = [];
+  var num = 0;
+
+  DAYS.forEach(function(day){
+    var color = COLORS[day.color];
+    var prevPt = null;
+    day.stops.forEach(function(s){
+      if(s.lat==null || s.lon==null) { return; }
+      num++;
+      var pt = [s.lat, s.lon];
+      var marker = L.marker(pt, {icon:pinIcon(color, num)}).addTo(map).bindTooltip(s.name, {className:'pin-tip', direction:'top'});
+      mapLayers.push(marker);
+      if(!s.excludeFromFit) fitPts.push(pt);
+      if(prevPt && s.transport && s.transport!=='none'){
+        var line = L.polyline([prevPt, pt], {color:color, weight:3.5, opacity:0.9, dashArray:DASH[s.transport]||null, lineJoin:'round'}).addTo(map);
+        mapLayers.push(line);
+      }
+      prevPt = pt;
+    });
+  });
+
+  if(fitPts.length){ map.fitBounds(L.latLngBounds(fitPts), {padding:[22,22]}); }
+}
+
+/* ================= SCHEDULE ================= */
+function renderLegend(){
+  var wrap = document.getElementById('legend-days');
+  wrap.innerHTML = DAYS.map(function(d){
+    return '<div class="legend-chip"><span class="legend-dot" style="background:var(--'+d.color+')"></span>'+esc(d.date)+' '+esc(d.title.split('・')[0])+'</div>';
+  }).join('');
+}
+
+function renderAreaTable(){
+  var t = document.getElementById('area-table');
+  var rows = '<tr><th>日付</th><th>エリア</th></tr>' + DAYS.map(function(d){
+    return '<tr><td>'+esc(d.date)+'</td><td>'+esc(d.area.split('（')[0])+'</td></tr>';
+  }).join('');
+  t.innerHTML = rows;
+}
+
+function transportLabel(t){
+  return {none:'—', walk:'徒歩', subway:'地下鉄', ferry:'フェリー', car:'車'}[t] || t;
+}
+
+function renderSchedule(){
+  var root = document.getElementById('schedule-root');
+  root.innerHTML = '';
+  var num = 0;
+
+  DAYS.forEach(function(day, di){
+    var card = document.createElement('div'); card.className = 'day-card';
+
+    var head = document.createElement('div');
+    head.className = 'day-head';
+    head.style.background = 'var(--'+day.color+')';
+    if(editMode){
+      head.innerHTML =
+        '<div class="day-head-edit">'+
+          '<div class="ed-row2">'+
+            '<input class="ed" data-di="'+di+'" data-f="date" value="'+esc(day.date)+'" placeholder="日付">'+
+            '<input class="ed" data-di="'+di+'" data-f="weekday" value="'+esc(day.weekday)+'" placeholder="曜日">'+
+          '</div>'+
+          '<input class="ed" data-di="'+di+'" data-f="title" value="'+esc(day.title)+'" placeholder="タイトル">'+
+        '</div>'+
+        '<div style="width:40%"><input class="ed" data-di="'+di+'" data-f="area" value="'+esc(day.area)+'" placeholder="エリア"></div>';
+    } else {
+      head.innerHTML =
+        '<div><div class="d-date">'+esc(day.weekday)+' / '+esc(day.date)+'</div><h3>'+esc(day.title)+'</h3></div>'+
+        '<div class="d-area">'+esc(day.area).replace(/（/g,'<br>（')+'</div>';
+    }
+    card.appendChild(head);
+
+    var tl = document.createElement('div'); tl.className = 'timeline';
+
+    day.stops.forEach(function(s, si){
+      var hasPin = s.lat!=null && s.lon!=null;
+      var myNum = null;
+      if(hasPin){ num++; myNum = num; }
+
+      var row = document.createElement('div');
+      if(editMode){
+        row.className = 'stop editing';
+        row.innerHTML =
+          '<span class="ed-label">時刻／時間帯</span><input class="ed" data-di="'+di+'" data-si="'+si+'" data-f="time" value="'+esc(s.time)+'">'+
+          '<span class="ed-label">施設名</span><input class="ed" data-di="'+di+'" data-si="'+si+'" data-f="name" value="'+esc(s.name)+'">'+
+          '<span class="ed-label">概要</span><textarea class="ed" data-di="'+di+'" data-si="'+si+'" data-f="desc" rows="2">'+esc(s.desc)+'</textarea>'+
+          '<div class="ed-row3">'+
+            '<div><span class="ed-label">緯度</span><input class="ed" data-di="'+di+'" data-si="'+si+'" data-f="lat" value="'+(s.lat==null?'':s.lat)+'"></div>'+
+            '<div><span class="ed-label">経度</span><input class="ed" data-di="'+di+'" data-si="'+si+'" data-f="lon" value="'+(s.lon==null?'':s.lon)+'"></div>'+
+            '<div><span class="ed-label">前施設からの移動</span>'+
+              '<select class="ed" data-di="'+di+'" data-si="'+si+'" data-f="transport">'+
+                ['none','walk','subway','ferry','car'].map(function(t){ return '<option value="'+t+'"'+(s.transport===t?' selected':'')+'>'+transportLabel(t)+'</option>'; }).join('')+
+              '</select>'+
+            '</div>'+
+          '</div>'+
+          '<span class="ed-label">タグ（任意・例：事前予約推奨）</span><input class="ed" data-di="'+di+'" data-si="'+si+'" data-f="tag" value="'+esc(s.tag||'')+'">'+
+          '<div class="edit-actions">'+
+            '<button class="icon-btn" data-act="up" data-di="'+di+'" data-si="'+si+'">▲</button>'+
+            '<button class="icon-btn" data-act="down" data-di="'+di+'" data-si="'+si+'">▼</button>'+
+            '<button class="icon-btn danger" data-act="del" data-di="'+di+'" data-si="'+si+'">🗑 削除</button>'+
+          '</div>';
+      } else {
+        row.className = 'stop';
+        var numHtml = myNum ? '<div class="pinnum" style="background:var(--'+day.color+')">'+myNum+'</div>' : '<div class="nopin"></div>';
+        var tagHtml = s.tag ? ' <span class="tag">'+esc(s.tag)+'</span>' : '';
+        row.innerHTML = numHtml+'<div class="t">'+esc(s.time)+'</div><div class="info"><div class="name">'+esc(s.name)+'</div><div class="desc">'+esc(s.desc)+tagHtml+'</div></div>';
+      }
+      tl.appendChild(row);
+    });
+
+    card.appendChild(tl);
+
+    if(editMode){
+      var addBtn = document.createElement('button');
+      addBtn.className = 'add-stop-btn';
+      addBtn.textContent = '+ 施設を追加';
+      addBtn.dataset.di = di;
+      addBtn.dataset.act = 'add';
+      card.appendChild(addBtn);
+    } else if(day.note){
+      var note = document.createElement('div'); note.className = 'day-note'; note.textContent = day.note;
+      card.appendChild(note);
+    }
+
+    root.appendChild(card);
+  });
+
+  wireEvents();
+}
+
+function wireEvents(){
+  var root = document.getElementById('schedule-root');
+
+  root.querySelectorAll('input.ed, textarea.ed, select.ed').forEach(function(input){
+    var isMapField = (input.dataset.f === 'lat' || input.dataset.f === 'lon' || input.dataset.f === 'transport');
+    input.addEventListener('input', function(){ applyField(input, false); });
+    input.addEventListener('change', function(){ applyField(input, true); });
+  });
+
+  root.querySelectorAll('button[data-act]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var act = btn.dataset.act, di = +btn.dataset.di, si = btn.dataset.si!=null ? +btn.dataset.si : null;
+      var day = DAYS[di];
+      if(act === 'add'){ day.stops.push(blankStop()); }
+      else if(act === 'del'){ day.stops.splice(si,1); }
+      else if(act === 'up' && si>0){ var tmp=day.stops[si-1]; day.stops[si-1]=day.stops[si]; day.stops[si]=tmp; }
+      else if(act === 'down' && si<day.stops.length-1){ var tmp2=day.stops[si+1]; day.stops[si+1]=day.stops[si]; day.stops[si]=tmp2; }
+      renderSchedule(); renderMap(); renderLegend(); renderAreaTable();
+      saveSyncedData();
+    });
+  });
+}
+
+function applyField(input, alsoRenderMap){
+  var di = +input.dataset.di, f = input.dataset.f;
+  var target = (input.dataset.si!=null) ? DAYS[di].stops[+input.dataset.si] : DAYS[di];
+  var v = input.value;
+  if(f==='lat' || f==='lon'){ target[f] = v===''? null : parseFloat(v); }
+  else { target[f] = v; }
+  if(alsoRenderMap){ renderMap(); renderLegend(); renderAreaTable(); saveSyncedData(); }
+}
+
+/* ================= RESIZABLE SPLIT ================= */
+function initResizer(){
+  var fixedTop = document.querySelector('.fixed-top');
+  var resizer = document.getElementById('resizer');
+  var app = document.querySelector('.app');
+  var dragging = false;
+
+  function clamp(px){
+    var min = window.innerHeight * 0.18;
+    var max = window.innerHeight * 0.82;
+    return Math.max(min, Math.min(max, px));
+  }
+  function setHeight(px){
+    fixedTop.style.flex = '0 0 ' + clamp(px) + 'px';
+    if(map) setTimeout(function(){ map.invalidateSize(); }, 0);
+  }
+
+  function onMove(clientY){
+    var rect = app.getBoundingClientRect();
+    setHeight(clientY - rect.top);
+  }
+
+  resizer.addEventListener('pointerdown', function(e){
+    dragging = true;
+    resizer.setPointerCapture(e.pointerId);
+    document.body.style.userSelect = 'none';
+  });
+  resizer.addEventListener('pointermove', function(e){
+    if(!dragging) return;
+    onMove(e.clientY);
+  });
+  resizer.addEventListener('pointerup', function(e){
+    dragging = false;
+    document.body.style.userSelect = '';
+    resizer.releasePointerCapture(e.pointerId);
+  });
+  resizer.addEventListener('pointercancel', function(){
+    dragging = false;
+    document.body.style.userSelect = '';
+  });
+}
+
+/* ================= EDIT TOGGLE ================= */
+document.getElementById('editFab').addEventListener('click', function(){
+  editMode = !editMode;
+  this.textContent = editMode ? '✓ 完了' : '✎ 編集';
+  this.classList.toggle('active', editMode);
+  renderSchedule();
+});
+
+/* ================= INIT ================= */
+initMap();
+initResizer();
+initSync();
+renderLegend();
+renderAreaTable();
+renderSchedule();
+renderMap();
+if(syncEnabled){ loadSyncedData(); } else { setSyncDot('#C9BFA0'); }
+
+}catch(err){
+  console.error('Init error:', err);
+  document.getElementById('fallback').style.display = 'block';
+}
+});
+</script>
+
+</body>
+</html>
