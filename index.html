@@ -64,7 +64,18 @@
   .stop .info .name{font-size:14px;font-weight:600;color:var(--ink);}
   .stop .info .desc{font-size:12.5px;color:var(--ink-soft);margin-top:2px;line-height:1.5;}
   .tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.04em;color:var(--gold);border:1px solid var(--gold);border-radius:100px;padding:1px 7px;margin-top:5px;}
+  .maplink{display:inline-block;margin-top:5px;font-size:11px;color:var(--d2);text-decoration:none;font-weight:600;}
+  .maplink:active{opacity:0.6;}
   .day-note{margin:0 16px 14px;padding:10px 12px;background:var(--paper);border-left:3px solid var(--gold);font-size:12px;color:var(--ink-soft);line-height:1.6;border-radius:0 8px 8px 0;}
+
+  .plan-card{background:var(--paper-card);border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;cursor:pointer;}
+  .plan-card.active{border-color:var(--gold);background:#FBF3DE;}
+  .plan-card .p-head{display:flex;justify-content:space-between;align-items:center;}
+  .plan-card .p-name{font-family:'Fraunces',serif;font-weight:700;font-size:15px;}
+  .plan-card .p-badge{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#fff;background:var(--gold);border-radius:100px;padding:2px 8px;display:none;}
+  .plan-card.active .p-badge{display:inline-block;}
+  .plan-card .p-tag{font-size:11.5px;color:var(--gold);font-weight:600;margin-top:2px;}
+  .plan-card .p-desc{font-size:12px;color:var(--ink-soft);margin-top:6px;line-height:1.6;}
   .area-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12.5px;background:var(--paper-card);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
   .area-table th{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--paper);padding:8px 10px;text-align:left;}
   .area-table td{padding:8px 10px;border-top:1px solid var(--line);}
@@ -120,6 +131,12 @@
         </div>
       </div>
 
+      <div class="section-label"><span class="num">PLAN</span><h2>CityPASS 3枠プラン選択</h2></div>
+      <div class="day-note" style="margin:14px 0;">
+        固定2枠は Empire State Building ＋ American Museum of Natural History（常に含まれる）。自由の女神は内部見学のため別途購入・CityPASS対象外。残り「選択3枠」の組み合わせを5パターンご用意しました。選ぶとスケジュールと地図に自動反映されます。
+      </div>
+      <div id="plan-selector"></div>
+
       <div id="schedule-root"></div>
 
       <div class="section-label"><span class="num">SUMMARY</span><h2>日程・エリア一覧</h2></div>
@@ -139,71 +156,122 @@ try{
 var COLORS = { d1:"#E15D3E", d2:"#2C6E9E", d3:"#4B8B5E", d4:"#935E8C", d5:"#C79A3B", d6:"#1E93A0", d7:"#7C7466" };
 var DASH = { none:null, walk:null, subway:"6,5", ferry:"1,3.4", car:"8,3,1,3" };
 
-var DAYS = [
-  { date:'8/22', weekday:'SAT', title:'到着・Times Square', area:'Times Square（徒歩）', color:'d1', note:null, stops:[
-    {time:'18:05', name:'EWR（ニューアーク空港）到着', desc:'到着。市内のホテルへ移動。', lat:40.6895, lon:-74.1745, transport:'none', excludeFromFit:true},
-    {time:'20:30', name:'The Westin New York at Times Square', desc:'タイムズスクエア徒歩圏の大型ホテル。チェックイン。', lat:40.7593, lon:-73.9871, transport:'none'},
-    {time:'21:00', name:'タイムズスクエア', desc:'巨大電飾看板が並ぶNY屈指の観光名所。夜も賑やか。', lat:40.7580, lon:-73.9855, transport:'walk'},
-    {time:'21:30', name:"Carmine's", desc:'大皿シェアスタイルの人気イタリアン。', tag:'事前予約推奨', lat:40.7589, lon:-73.9847, transport:'walk'}
-  ]},
-  { date:'8/23', weekday:'SUN', title:'Financial District・World Trade Center', area:'Downtown Manhattan（徒歩＋地下鉄）', color:'d2', note:null, stops:[
-    {time:'10:30', name:'Battery Park', desc:'マンハッタン最南端の公園。自由の女神行きフェリー乗り場。', lat:40.7033, lon:-74.0170, transport:'none'},
-    {time:'11:30', name:'自由の女神', desc:'NYの象徴的モニュメント。内部見学は所要3〜4時間。', tag:'事前予約推奨', lat:40.6892, lon:-74.0445, transport:'ferry'},
-    {time:'15:30', name:'Wall Street', desc:'世界的な金融街のシンボル通り。', lat:40.7074, lon:-74.0113, transport:'ferry'},
-    {time:'16:00', name:'Oculus', desc:'白い翼のような近未来建築の交通ハブ兼ショッピングモール。', lat:40.7115, lon:-74.0134, transport:'walk'},
-    {time:'17:30', name:'One World Observatory', desc:'ワン・ワールド・トレード・センターの展望台。', tag:'事前予約推奨', lat:40.7127, lon:-74.0134, transport:'walk'},
-    {time:'19:30', name:'ブロードウェイ観劇①', desc:'Minskoff Theatreにて鑑賞。', tag:'事前予約推奨', lat:40.7571, lon:-73.9847, transport:'subway'}
-  ]},
-  { date:'8/24', weekday:'MON', title:'Midtown East・5番街', area:'Midtown East（徒歩）', color:'d3', note:null, stops:[
-    {time:'09:00', name:"Macy's Herald Square", desc:'世界最大級のフロア面積を誇る老舗百貨店。', lat:40.7505, lon:-73.9884, transport:'none'},
-    {time:'10:00', name:'ニューヨーク公共図書館', desc:'大理石のライオン像で有名な歴史的建築の図書館。', lat:40.7532, lon:-73.9822, transport:'walk'},
-    {time:'11:00', name:'Bryant Park', desc:'図書館に隣接する都心のオアシス的公園。', lat:40.7536, lon:-73.9832, transport:'walk'},
-    {time:'11:30', name:'Grand Central Terminal', desc:'天井のフレスコ画で知られる歴史的ターミナル駅。', lat:40.7527, lon:-73.9772, transport:'walk'},
-    {time:'12:30', name:'昼食', desc:'周辺エリアで自由に。', lat:null, lon:null, transport:'walk'},
-    {time:'14:00', name:'Tiffany & Co. Landmark', desc:'ブランド旗艦店。ショーウィンドウも見どころ。', lat:40.7638, lon:-73.9740, transport:'walk'},
-    {time:'15:00', name:"St. Patrick's Cathedral", desc:'ゴシック様式の壮麗な大聖堂。入場無料。', lat:40.7585, lon:-73.9760, transport:'walk'},
-    {time:'15:30', name:'Rockefeller Center', desc:'オフィス・商業施設が集まる複合エリア。', lat:40.7587, lon:-73.9787, transport:'walk'},
-    {time:'18:00', name:'Top of the Rock', desc:'夕景〜夜景を一望できる展望台。', tag:'事前予約推奨', lat:40.7593, lon:-73.9789, transport:'walk'},
-    {time:'20:00', name:'ブロードウェイ観劇②', desc:'Richard Rodgers Theatreにて鑑賞。', tag:'事前予約推奨', lat:40.7595, lon:-73.9862, transport:'walk'}
-  ]},
-  { date:'8/25', weekday:'TUE', title:'セントラルパーク・美術館', area:'Upper East → West Side（徒歩）', color:'d4',
-    note:'この日にまとめる理由：セントラルパークが東西をつなぐため。The Met・グッゲンハイムは東側、自然史博物館は西側だが、公園を横切るだけで比較的スムーズに移動できる。', stops:[
-    {time:'09:00', name:'Central Park', desc:'マンハッタン中央に広がる大公園。エリアの東西をつなぐ。', lat:40.7644, lon:-73.9736, transport:'none'},
-    {time:'10:00', name:'Metropolitan Museum of Art', desc:'世界屈指の規模を誇る総合美術館。', lat:40.7794, lon:-73.9632, transport:'walk'},
-    {time:'13:30', name:'昼食', desc:'The Met周辺で。', lat:null, lon:null, transport:'walk'},
-    {time:'15:00', name:'Solomon R. Guggenheim Museum', desc:'フランク・ロイド・ライト設計の螺旋型美術館。', lat:40.7830, lon:-73.9590, transport:'walk'},
-    {time:'16:30', name:'セントラルパーク横断', desc:'散策しながら公園を東から西へ移動。', lat:null, lon:null, transport:'walk'},
-    {time:'17:00', name:'American Museum of Natural History', desc:'恐竜化石など展示する大型自然史博物館。', lat:40.7813, lon:-73.9740, transport:'walk'},
-    {time:'19:00', name:'夕食', desc:'Upper West Sideエリアで。', lat:null, lon:null, transport:'walk'}
-  ]},
-  { date:'8/26', weekday:'WED', title:'MoMA・Chelsea・Hudson Yards', area:'Midtown → Chelsea → Hudson Yards（地下鉄＋徒歩）', color:'d5',
-    note:'徒歩主体で回れる一日。MoMA〜Chelsea間のみ地下鉄移動。', stops:[
-    {time:'10:30', name:'MoMA', desc:'近現代アートを代表する美術館。', tag:'事前予約推奨', lat:40.7614, lon:-73.9776, transport:'none'},
-    {time:'13:30', name:'Starbucks Reserve Roastery', desc:'焙煎工程が見学できる体験型旗艦店。', lat:40.7423, lon:-74.0056, transport:'subway'},
-    {time:'14:30', name:'Chelsea Market', desc:'レンガ造り倉庫を改装したフードホール。昼食に。', lat:40.7424, lon:-74.0061, transport:'walk'},
-    {time:'16:00', name:'Little Island', desc:'ハドソン川に浮かぶ人工島の公園。', lat:40.7405, lon:-74.0141, transport:'walk'},
-    {time:'16:45', name:'High Line', desc:'廃線となった高架鉄道を再生した遊歩道。', lat:40.7460, lon:-74.0075, transport:'walk'},
-    {time:'18:00', name:'Vessel', desc:'Hudson Yards内の螺旋階段型モニュメント。', lat:40.7538, lon:-74.0022, transport:'walk'},
-    {time:'19:00', name:'夕食', desc:'Hudson Yards周辺で。', lat:null, lon:null, transport:'walk'}
-  ]},
-  { date:'8/27', weekday:'THU', title:'Coney Island', area:'Coney Island（地下鉄＋徒歩）', color:'d6',
-    note:'Coney Islandはマンハッタン中心部から地下鉄で約1時間。この日はコニーアイランドを主役にするのがおすすめ。夕食もコニーアイランド内で完結させ、移動の動線を短くしている。', stops:[
-    {time:'午前', name:'Coney Island到着・ボードウォーク散策', desc:'地下鉄でマンハッタンから約60分。海沿いの遊歩道を散策。', lat:40.5773, lon:-73.9810, transport:'subway'},
-    {time:'昼', name:'Luna Park', desc:'コニーアイランドの遊園地。', lat:40.5744, lon:-73.9800, transport:'walk'},
-    {time:'〃', name:'Cyclone', desc:'歴史的な木製ジェットコースター。', lat:40.5744, lon:-73.9788, transport:'walk'},
-    {time:'〃', name:"Nathan's Famous 本店", desc:'名物ホットドッグの老舗。昼食に。', lat:40.5747, lon:-73.9814, transport:'walk'},
-    {time:'午後', name:"Deno's Wonder Wheel", desc:'歴史ある大観覧車。', lat:40.5738, lon:-73.9776, transport:'walk'},
-    {time:'〃', name:'Steeplechase Pier', desc:'海に伸びる桟橋。', lat:40.5722, lon:-73.9838, transport:'walk'},
-    {time:'〃', name:'ビーチ', desc:'のんびり休憩。', lat:40.5722, lon:-73.9800, transport:'walk'},
-    {time:'〃', name:'New York Aquarium', desc:'水族館。時間があれば立ち寄り。', lat:40.5747, lon:-73.9709, transport:'walk'},
-    {time:'19:00', name:"Totonno's Pizzeria Napolitano", desc:'1924年創業、コニーアイランド地元の老舗コールオーブンピザ店。マンハッタンへ戻らず地区内で夕食を完結。現金のみ・行列必至。', lat:40.5776, lon:-73.9847, transport:'walk'},
-    {time:'夜', name:'マンハッタンへ戻る', desc:'夕食後、地下鉄でホテルへ。', lat:null, lon:null, transport:'subway'}
-  ]},
-  { date:'8/28', weekday:'FRI', title:'帰国', area:'Newark Airport', color:'d7', note:null, stops:[
-    {time:'05:30', name:'ホテル出発', desc:'', lat:null, lon:null, transport:'none'},
-    {time:'10:30', name:'EWR（ニューアーク空港）出発', desc:'', lat:null, lon:null, transport:'none'}
-  ]}
-];
+var PLANS = {
+  A: { label:'王道プラン', tag:'動線最短・追加移動ゼロ',
+       desc:'One World Observatoryと同じWTCエリアで9/11メモリアルを見学。移動を増やさず組み込める、最もシンプルな選択。',
+       totr:true, gugg:true, extra:['memorial'] },
+  B: { label:'水上ビュープラン', tag:'クルーズで川から摩天楼を一望',
+       desc:'Circle Lineの遊覧クルーズを追加。陸から見る観光と違い、水上からマンハッタンのスカイラインを一望できる。Day5朝に組み込み。',
+       totr:true, gugg:true, extra:['circle'] },
+  C: { label:'航空博物館プラン', tag:'空母Intrepidで迫力体験',
+       desc:'本物の空母を改装したIntrepid博物館へ。戦闘機・宇宙船・潜水艦など展示は迫力満点で、乗り物好き・お子様連れに人気。Day5朝に組み込み。',
+       totr:true, gugg:true, extra:['intrepid'] },
+  D: { label:'展望台はESBで満足プラン', tag:'Top of the Rockは使わず体験重視',
+       desc:'展望台はEmpire State Buildingのみに絞り、その分9/11メモリアルとCircle Lineクルーズの2つを追加。Day3の夜にゆとりができる。',
+       totr:false, gugg:true, extra:['memorial','circle'] },
+  E: { label:'アートより体験重視プラン', tag:'Guggenheimは使わず歴史・乗り物重視',
+       desc:'美術館より歴史・体験型を優先する人向け。Guggenheimの代わりに9/11メモリアルとIntrepid博物館を追加。Day4の午後にゆとりができる。',
+       totr:true, gugg:false, extra:['memorial','intrepid'] }
+};
+var currentPlan = 'A';
+
+var MEMORIAL_STOP = {time:'15:15', name:'9/11 Memorial & Museum', desc:'追悼施設と博物館。CityPASS対象。One World Observatoryと同じ複合施設内。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7115776, lon:-74.0133362, transport:'ferry', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25a1a3be8cb45:0xf430ccc5401d1eed'};
+var CIRCLE_STOP = {time:'08:00', name:'Circle Line Sightseeing Cruises', desc:'マンハッタン周遊クルーズ（Pier 83発）。船上からスカイラインと自由の女神を一望。CityPASS対象。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7628574, lon:-74.0015034, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259aab106f235:0xb50544c63c9d09eb'};
+var INTREPID_STOP = {time:'08:30', name:'Intrepid Sea, Air & Space Museum', desc:'退役空母を改装した博物館。戦闘機・コンコルド・スペースシャトルを展示。CityPASS対象。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7648801, lon:-74.0008306, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c2584ed560199f:0x22362b652743ff1'};
+var ESB_STOP = {time:'09:00', name:'Empire State Building', desc:'NYを象徴する高層ビルの展望台（86階／102階）。CityPASS対象（固定枠）。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7484405, lon:-73.9856644, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259a9b3117469:0xd134e199a405a163'};
+
+function buildDays(planId){
+  var p = PLANS[planId] || PLANS.A;
+  var hasMemorial = p.extra.indexOf('memorial') !== -1;
+  var day5Extra = p.extra.indexOf('circle') !== -1 ? CIRCLE_STOP : (p.extra.indexOf('intrepid') !== -1 ? INTREPID_STOP : null);
+
+  var day2Stops = [
+    {time:'10:30', name:'Battery Park', desc:'マンハッタン最南端の公園。自由の女神行きフェリー乗り場。', lat:40.7033, lon:-74.0170, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25a12f88ba2ad:0xbe70465e98439c12'},
+    {time:'11:30', name:'自由の女神', desc:'NYの象徴的モニュメント。内部見学は所要3〜4時間。CityPASSではなく別途購入（内部見学のため）。', tag:'事前予約推奨', lat:40.6892, lon:-74.0445, transport:'ferry', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25090129c363d:0x40c6a5770d25022b'}
+  ];
+  if(hasMemorial){
+    day2Stops.push(Object.assign({}, MEMORIAL_STOP, {transport:'ferry'}));
+    day2Stops.push({time:'16:50', name:'Wall Street', desc:'世界的な金融街のシンボル通り（徒歩通過）。', lat:40.7074, lon:-74.0113, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25a161980d8a1:0x9e5797d5a981701d'});
+    day2Stops.push({time:'17:10', name:'Oculus', desc:'白い翼のような近未来建築の交通ハブ兼ショッピングモール。', lat:40.7115, lon:-74.0134, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25b3ec115fee1:0x3379bef08da10ec1'});
+  } else {
+    day2Stops.push({time:'15:30', name:'Wall Street', desc:'世界的な金融街のシンボル通り。', lat:40.7074, lon:-74.0113, transport:'ferry', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25a161980d8a1:0x9e5797d5a981701d'});
+    day2Stops.push({time:'16:00', name:'Oculus', desc:'白い翼のような近未来建築の交通ハブ兼ショッピングモール。', lat:40.7115, lon:-74.0134, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25b3ec115fee1:0x3379bef08da10ec1'});
+  }
+  day2Stops.push({time:'17:30', name:'One World Observatory', desc:'ワン・ワールド・トレード・センターの展望台。CityPASSには含まれず、単独購入。', tag:'事前予約推奨', lat:40.7127, lon:-74.0134, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25a1bd03f614d:0x8fe352941f469354'});
+  day2Stops.push({time:'19:30', name:'ブロードウェイ観劇①', desc:'Minskoff Theatreにて鑑賞。', tag:'事前予約推奨', lat:40.7571, lon:-73.9847, transport:'subway', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25854ff028707:0xefa8e53f0491a9bb'});
+
+  var day3Stops = [
+    Object.assign({}, ESB_STOP),
+    {time:'10:15', name:"Macy's Herald Square", desc:'世界最大級のフロア面積を誇る老舗百貨店。', lat:40.7505, lon:-73.9884, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259aeadd618df:0xdb28329e297402af'},
+    {time:'10:45', name:'ニューヨーク公共図書館', desc:'大理石のライオン像で有名な歴史的建築の図書館。', lat:40.7532, lon:-73.9822, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c2590099a8a8a9:0x3b51df6e509a734c'},
+    {time:'11:30', name:'Bryant Park', desc:'図書館に隣接する都心のオアシス的公園。', lat:40.7536, lon:-73.9832, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259aae7a0b1bd:0xb49cafb82537f1a7'},
+    {time:'12:00', name:'Grand Central Terminal', desc:'天井のフレスコ画で知られる歴史的ターミナル駅。', lat:40.7527, lon:-73.9772, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259599991bdf9:0xcdb22344c069bda5'},
+    {time:'13:00', name:'昼食', desc:'周辺エリアで自由に。', lat:null, lon:null, transport:'walk'},
+    {time:'14:30', name:'Tiffany & Co. Landmark', desc:'ブランド旗艦店。ショーウィンドウも見どころ。', lat:40.7638, lon:-73.9740, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259a41af6258f:0x22b90f6a701de84f'},
+    {time:'15:30', name:"St. Patrick's Cathedral", desc:'ゴシック様式の壮麗な大聖堂。入場無料。', lat:40.7585, lon:-73.9760, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258fc102f6e51:0x88603435e036aa5b'},
+    {time:'16:00', name:'Rockefeller Center', desc:'オフィス・商業施設が集まる複合エリア。', lat:40.7587, lon:-73.9787, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258fecf664df5:0x33d224a0d5dacca2'}
+  ];
+  if(p.totr){
+    day3Stops.push({time:'18:00', name:'Top of the Rock', desc:'夕景〜夜景を一望できる展望台。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7593, lon:-73.9789, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258ff31cabb7b:0xda17e23e0f1fc620'});
+  }
+  day3Stops.push({time:p.totr?'20:00':'19:00', name:'ブロードウェイ観劇②', desc:'Richard Rodgers Theatreにて鑑賞。', tag:'事前予約推奨', lat:40.7595, lon:-73.9862, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25854460a2db3:0xd44aae77fbd86ee8'});
+
+  var day4Stops = [
+    {time:'09:00', name:'Central Park', desc:'マンハッタン中央に広がる大公園。エリアの東西をつなぐ。', lat:40.7644, lon:-73.9736, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258f06f09a9df:0x792ab6262d9ff738'},
+    {time:'10:00', name:'Metropolitan Museum of Art', desc:'世界屈指の規模を誇る総合美術館。CityPASSには含まれず、単独購入。', lat:40.7794, lon:-73.9632, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25896f660c26f:0x3b2fa4f4b6c6a1fa'},
+    {time:'13:30', name:'昼食', desc:'The Met周辺で。', lat:null, lon:null, transport:'walk'}
+  ];
+  if(p.gugg){
+    day4Stops.push({time:'15:00', name:'Solomon R. Guggenheim Museum', desc:'フランク・ロイド・ライト設計の螺旋型美術館。', tag:'CityPASS対象', citypass:true, lat:40.7830, lon:-73.9590, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258a29a5e9e99:0x4a01c8df6fb3cb8'});
+  }
+  day4Stops.push({time:'16:30', name:'セントラルパーク横断', desc:'散策しながら公園を東から西へ移動。', lat:null, lon:null, transport:'walk'});
+  day4Stops.push({time:'17:00', name:'American Museum of Natural History', desc:'恐竜化石など展示する大型自然史博物館。', tag:'CityPASS対象（固定枠）', citypass:true, lat:40.7813, lon:-73.9740, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258f4b00f7a09:0xa27d8172624c5db1'});
+  day4Stops.push({time:'19:00', name:'夕食', desc:'Upper West Sideエリアで。', lat:null, lon:null, transport:'walk'});
+
+  var day5Stops = [];
+  if(day5Extra){ day5Stops.push(Object.assign({}, day5Extra)); }
+  day5Stops.push({time:'10:30', name:'MoMA', desc:'近現代アートを代表する美術館。CityPASSには含まれず、単独購入。', tag:'事前予約推奨', lat:40.7614, lon:-73.9776, transport: day5Extra?'walk':'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258f97bdb102b:0xea9f8fc0b3ffff55'});
+  day5Stops.push({time:'13:30', name:'Starbucks Reserve Roastery', desc:'焙煎工程が見学できる体験型旗艦店。', lat:40.7423, lon:-74.0056, transport:'subway', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259bf6dd90021:0x645ce21be1b31735'});
+  day5Stops.push({time:'14:30', name:'Chelsea Market', desc:'レンガ造り倉庫を改装したフードホール。昼食に。', lat:40.7424, lon:-74.0061, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259bf144c69c3:0x7e61762e972dc0a2'});
+  day5Stops.push({time:'16:00', name:'Little Island', desc:'ハドソン川に浮かぶ人工島の公園。', lat:40.7405, lon:-74.0141, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259319989e02f:0xbc9fdbef8d2af7b0'});
+  day5Stops.push({time:'16:45', name:'High Line', desc:'廃線となった高架鉄道を再生した遊歩道。', lat:40.7460, lon:-74.0075, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259c7840fb4e5:0x583f615c850a3c91'});
+  day5Stops.push({time:'18:00', name:'Vessel', desc:'Hudson Yards内の螺旋階段型モニュメント。', lat:40.7538, lon:-74.0022, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259b4160028ab:0x414b171aac155dc0'});
+  day5Stops.push({time:'19:00', name:'夕食', desc:'Hudson Yards周辺で。', lat:null, lon:null, transport:'walk'});
+
+  return [
+    { date:'8/22', weekday:'SAT', title:'到着・Times Square', area:'Times Square（徒歩）', color:'d1', note:null, stops:[
+      {time:'18:05', name:'EWR（ニューアーク空港）到着', desc:'到着。市内のホテルへ移動。', lat:40.6895, lon:-74.1745, transport:'none', excludeFromFit:true, map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c252e1c5ec0cef:0xb3f3b437c5d7f286'},
+      {time:'20:30', name:'The Westin New York at Times Square', desc:'タイムズスクエア徒歩圏の大型ホテル。チェックイン。', lat:40.7593, lon:-73.9871, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25853631aea85:0xef5da1144aeb45a6'},
+      {time:'21:00', name:'タイムズスクエア', desc:'巨大電飾看板が並ぶNY屈指の観光名所。夜も賑やか。', lat:40.7580, lon:-73.9855, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25855c6480299:0x55194ec5a1ae072e'},
+      {time:'21:30', name:"Carmine's", desc:'大皿シェアスタイルの人気イタリアン。', tag:'事前予約推奨', lat:40.7589, lon:-73.9847, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25854faa8d447:0x100a2b0d8c445c5f'}
+    ]},
+    { date:'8/23', weekday:'SUN', title:'Financial District・World Trade Center', area:'Downtown Manhattan（徒歩＋地下鉄）', color:'d2', note:null, stops: day2Stops },
+    { date:'8/24', weekday:'MON', title:'Midtown East・5番街', area:'Midtown East（徒歩）', color:'d3', note:null, stops: day3Stops },
+    { date:'8/25', weekday:'TUE', title:'セントラルパーク・美術館', area:'Upper East → West Side（徒歩）', color:'d4',
+      note:'この日にまとめる理由：セントラルパークが東西をつなぐため。The Met・グッゲンハイムは東側、自然史博物館は西側だが、公園を横切るだけで比較的スムーズに移動できる。', stops: day4Stops },
+    { date:'8/26', weekday:'WED', title:'MoMA・Chelsea・Hudson Yards', area:'Midtown → Chelsea → Hudson Yards（地下鉄＋徒歩）', color:'d5',
+      note:'徒歩主体で回れる一日。'+(day5Extra?'朝のクルーズ／博物館のみ移動あり、それ以降は徒歩中心。':'MoMA〜Chelsea間のみ地下鉄移動。'), stops: day5Stops },
+    { date:'8/27', weekday:'THU', title:'Coney Island', area:'Coney Island（地下鉄＋徒歩）', color:'d6',
+      note:'Coney Islandはマンハッタン中心部から地下鉄で約1時間。この日はコニーアイランドを主役にするのがおすすめ。夕食もコニーアイランド内で完結させ、移動の動線を短くしている（Totonnoʼsは現在土日のみ営業のため、木曜も開いているGargiuloʼsに変更）。', stops:[
+      {time:'午前', name:'Coney Island到着・ボードウォーク散策', desc:'地下鉄でマンハッタンから約60分。海沿いの遊歩道を散策。', lat:40.5773, lon:-73.9810, transport:'subway', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c2444a9746d72f:0x5b7725540bf8c101'},
+      {time:'昼', name:'Luna Park', desc:'コニーアイランドの遊園地。', lat:40.5744, lon:-73.9800, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c2443594b7c71d:0x1503bf4bfd6f2c6f'},
+      {time:'〃', name:'Cyclone', desc:'歴史的な木製ジェットコースター。', lat:40.5744, lon:-73.9788, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c24435d966535d:0xf78e2b7eebe641c2'},
+      {time:'〃', name:"Nathan's Famous 本店", desc:'名物ホットドッグの老舗。昼食に。', lat:40.5747, lon:-73.9814, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c244353f830641:0x7236f2dccccf97c0'},
+      {time:'午後', name:"Deno's Wonder Wheel", desc:'歴史ある大観覧車。', lat:40.5738, lon:-73.9776, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c24434534167ab:0x8cb4eba7154607ba'},
+      {time:'〃', name:'Steeplechase Pier', desc:'海に伸びる桟橋。', lat:40.5722, lon:-73.9838, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c245ccd193d889:0x72a21aa16d5d6bef'},
+      {time:'〃', name:'ビーチ', desc:'のんびり休憩。', lat:40.5722, lon:-73.9800, transport:'walk'},
+      {time:'〃', name:'New York Aquarium', desc:'水族館。時間があれば立ち寄り。', lat:40.5747, lon:-73.9709, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c244360f1e1371:0x45f54e3a5017dbdc'},
+      {time:'19:00', name:"Gargiulo's Restaurant", desc:'1907年創業、コニーアイランド地区内の老舗イタリアン。マンハッタンへ戻らず地区内で夕食を完結。木曜も営業（12:00〜21:30）。要ドレスコード確認（短パン・タンクトップ不可）。', tag:'事前予約推奨', lat:40.5765, lon:-73.9824, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c24435511aae27:0x13f7b14c307e93ac'},
+      {time:'夜', name:'マンハッタンへ戻る', desc:'夕食後、地下鉄でホテルへ。', lat:null, lon:null, transport:'subway'}
+    ]},
+    { date:'8/28', weekday:'FRI', title:'帰国', area:'Newark Airport', color:'d7', note:null, stops:[
+      {time:'05:30', name:'ホテル出発', desc:'', lat:null, lon:null, transport:'none'},
+      {time:'10:30', name:'EWR（ニューアーク空港）出発', desc:'', lat:null, lon:null, transport:'none'}
+    ]}
+  ];
+}
+
+var DAYS = buildDays(currentPlan);
 
 var editMode = false;
 var map, tileLayer;
@@ -258,10 +326,12 @@ function loadSyncedData(){
   return docRef.get().then(function(snap){
     if(snap.exists && snap.data() && snap.data().days){
       DAYS = snap.data().days;
+      if(snap.data().plan && PLANS[snap.data().plan]) currentPlan = snap.data().plan;
       lastSyncedJSON = JSON.stringify(DAYS);
+      renderPlanSelector();
     } else {
       lastSyncedJSON = JSON.stringify(DAYS);
-      docRef.set({ days: DAYS, updatedAt: Date.now() });
+      docRef.set({ days: DAYS, plan: currentPlan, updatedAt: Date.now() });
     }
     setSyncDot('#6fbf73', '同期中');
     listenForRemoteChanges();
@@ -279,8 +349,9 @@ function listenForRemoteChanges(){
     lastSyncedJSON = json;
     if(isEditingFocused()) return; // don't disrupt someone mid-edit
     DAYS = snap.data().days;
+    if(snap.data().plan && PLANS[snap.data().plan]) currentPlan = snap.data().plan;
     applyingRemote = true;
-    renderSchedule(); renderMap(); renderLegend(); renderAreaTable();
+    renderPlanSelector(); renderSchedule(); renderMap(); renderLegend(); renderAreaTable();
     applyingRemote = false;
   }, function(e){ console.error('listen failed', e); setSyncDot('#c0392b','同期エラー'); });
 }
@@ -290,7 +361,7 @@ function saveSyncedData(){
   var json = JSON.stringify(DAYS);
   if(json === lastSyncedJSON) return;
   lastSyncedJSON = json;
-  docRef.set({ days: DAYS, updatedAt: Date.now() }).catch(function(e){
+  docRef.set({ days: DAYS, plan: currentPlan, updatedAt: Date.now() }).catch(function(e){
     console.error('save failed', e); setSyncDot('#c0392b','保存エラー');
   });
 }
@@ -340,6 +411,31 @@ function renderMap(){
 }
 
 /* ================= SCHEDULE ================= */
+function renderPlanSelector(){
+  var root = document.getElementById('plan-selector');
+  root.innerHTML = Object.keys(PLANS).map(function(key){
+    var p = PLANS[key];
+    var active = key === currentPlan;
+    return '<div class="plan-card'+(active?' active':'')+'" data-plan="'+key+'">'+
+      '<div class="p-head"><span class="p-name">'+key+'. '+esc(p.label)+'</span><span class="p-badge">選択中</span></div>'+
+      '<div class="p-tag">'+esc(p.tag)+'</div>'+
+      '<div class="p-desc">'+esc(p.desc)+'</div>'+
+    '</div>';
+  }).join('');
+  root.querySelectorAll('.plan-card').forEach(function(card){
+    card.addEventListener('click', function(){
+      var key = card.dataset.plan;
+      if(key === currentPlan) return;
+      if(confirm('プランを切り替えると、個別に手入力した編集内容は上書きされます。続行しますか？')){
+        currentPlan = key;
+        DAYS = buildDays(currentPlan);
+        renderPlanSelector(); renderSchedule(); renderMap(); renderLegend(); renderAreaTable();
+        saveSyncedData();
+      }
+    });
+  });
+}
+
 function renderLegend(){
   var wrap = document.getElementById('legend-days');
   wrap.innerHTML = DAYS.map(function(d){
@@ -420,7 +516,9 @@ function renderSchedule(){
         row.className = 'stop';
         var numHtml = myNum ? '<div class="pinnum" style="background:var(--'+day.color+')">'+myNum+'</div>' : '<div class="nopin"></div>';
         var tagHtml = s.tag ? ' <span class="tag">'+esc(s.tag)+'</span>' : '';
-        row.innerHTML = numHtml+'<div class="t">'+esc(s.time)+'</div><div class="info"><div class="name">'+esc(s.name)+'</div><div class="desc">'+esc(s.desc)+tagHtml+'</div></div>';
+        var mapUrl = s.map || (hasPin ? ('https://www.google.com/maps/search/?api=1&query='+s.lat+','+s.lon) : null);
+        var mapHtml = mapUrl ? ' <a class="maplink" target="_blank" rel="noopener" href="'+mapUrl+'">📍 Google Mapsで開く</a>' : '';
+        row.innerHTML = numHtml+'<div class="t">'+esc(s.time)+'</div><div class="info"><div class="name">'+esc(s.name)+'</div><div class="desc">'+esc(s.desc)+tagHtml+'</div>'+mapHtml+'</div>';
       }
       tl.appendChild(row);
     });
@@ -531,6 +629,7 @@ document.getElementById('editFab').addEventListener('click', function(){
 initMap();
 initResizer();
 initSync();
+renderPlanSelector();
 renderLegend();
 renderAreaTable();
 renderSchedule();
