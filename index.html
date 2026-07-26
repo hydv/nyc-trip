@@ -170,8 +170,8 @@ var PLANS = {
 var currentPlan = 'E';
 
 var MEMORIAL_STOP = {time:'15:15', name:'9/11 Memorial & Museum', desc:'追悼施設と博物館。CityPASS対象。One World Observatoryと同じ複合施設内。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7115776, lon:-74.0133362, transport:'ferry', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25a1a3be8cb45:0xf430ccc5401d1eed'};
-var CIRCLE_STOP = {time:'08:00', name:'Circle Line：ランドマーククルーズ', desc:'Pier 83発、所要1.5時間。ダウンタウン〜ミッドタウンのスカイラインと自由の女神を船上から一望。MoMA(10:30)前に終わる長さで選定。CityPASS対象。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7628574, lon:-74.0015034, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259aab106f235:0xb50544c63c9d09eb'};
-var INTREPID_STOP = {time:'08:30', name:'Intrepid Sea, Air & Space Museum', desc:'退役空母を改装した博物館。戦闘機・コンコルド・スペースシャトルを展示。CityPASS対象。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7648801, lon:-74.0008306, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c2584ed560199f:0x22362b652743ff1'};
+var CIRCLE_STOP = {time:'14:00', name:'Circle Line：ランドマーククルーズ', desc:'Pier 83発、所要1.5時間。予約可能枠は11:30/12:30/14:00/15:00のみのため、MoMAをゆっくり見た後の14:00枠を選択。ダウンタウン〜ミッドタウンのスカイラインと自由の女神を船上から一望。CityPASS対象。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7628574, lon:-74.0015034, transport:'subway', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259aab106f235:0xb50544c63c9d09eb'};
+var INTREPID_STOP = {time:'12:30', name:'Intrepid Sea, Air & Space Museum', desc:'退役空母を改装した博物館。戦闘機・コンコルド・スペースシャトルを展示。CityPASS対象。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7648801, lon:-74.0008306, transport:'subway', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c2584ed560199f:0x22362b652743ff1'};
 var ESB_STOP = {time:'09:00', name:'Empire State Building', desc:'NYを象徴する高層ビルの展望台（86階／102階）。CityPASS対象（固定枠）。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7484405, lon:-73.9856644, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259a9b3117469:0xd134e199a405a163'};
 
 function buildDays(planId){
@@ -223,14 +223,22 @@ function buildDays(planId){
   day4Stops.push({time:'19:00', name:'夕食', desc:'Upper West Sideエリアで。', lat:null, lon:null, transport:'walk'});
 
   var day5Stops = [];
-  if(day5Extra){ day5Stops.push(Object.assign({}, day5Extra)); }
-  day5Stops.push({time:'10:30', name:'MoMA', desc:'近現代アートを代表する美術館。CityPASSには含まれず、単独購入。', tag:'事前予約推奨', lat:40.7614, lon:-73.9776, transport: day5Extra?'walk':'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258f97bdb102b:0xea9f8fc0b3ffff55'});
-  day5Stops.push({time:'13:30', name:'Starbucks Reserve Roastery', desc:'焙煎工程が見学できる体験型旗艦店。', lat:40.7423, lon:-74.0056, transport:'subway', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259bf6dd90021:0x645ce21be1b31735'});
-  day5Stops.push({time:'14:30', name:'Chelsea Market', desc:'レンガ造り倉庫を改装したフードホール。昼食に。', lat:40.7424, lon:-74.0061, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259bf144c69c3:0x7e61762e972dc0a2'});
-  day5Stops.push({time:'16:00', name:'Little Island', desc:'ハドソン川に浮かぶ人工島の公園。', lat:40.7405, lon:-74.0141, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259319989e02f:0xbc9fdbef8d2af7b0'});
-  day5Stops.push({time:'16:45', name:'High Line', desc:'廃線となった高架鉄道を再生した遊歩道。', lat:40.7460, lon:-74.0075, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259c7840fb4e5:0x583f615c850a3c91'});
-  day5Stops.push({time:'18:00', name:'Vessel', desc:'Hudson Yards内の螺旋階段型モニュメント。', lat:40.7538, lon:-74.0022, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259b4160028ab:0x414b171aac155dc0'});
-  day5Stops.push({time:'19:00', name:'夕食', desc:'Hudson Yards周辺で。', lat:null, lon:null, transport:'walk'});
+  day5Stops.push({time:'10:00', name:'MoMA', desc:'近現代アートを代表する美術館。CityPASSには含まれず、単独購入。ゆっくり3時間ほど確保。', tag:'事前予約推奨', lat:40.7614, lon:-73.9776, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258f97bdb102b:0xea9f8fc0b3ffff55'});
+  if(day5Extra){
+    day5Stops.push(Object.assign({}, day5Extra, {time:'14:00'}));
+    day5Stops.push({time:'15:50', name:'Starbucks Reserve Roastery', desc:'焙煎工程が見学できる体験型旗艦店。', lat:40.7423, lon:-74.0056, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259bf6dd90021:0x645ce21be1b31735'});
+    day5Stops.push({time:'16:40', name:'Chelsea Market', desc:'レンガ造り倉庫を改装したフードホール。軽食に。', lat:40.7424, lon:-74.0061, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259bf144c69c3:0x7e61762e972dc0a2'});
+    day5Stops.push({time:'17:30', name:'Little Island', desc:'ハドソン川に浮かぶ人工島の公園。', lat:40.7405, lon:-74.0141, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259319989e02f:0xbc9fdbef8d2af7b0'});
+    day5Stops.push({time:'18:00', name:'High Line', desc:'廃線となった高架鉄道を再生した遊歩道。', lat:40.7460, lon:-74.0075, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259c7840fb4e5:0x583f615c850a3c91'});
+    day5Stops.push({time:'18:30', name:'Vessel', desc:'Hudson Yards内の螺旋階段型モニュメント。', lat:40.7538, lon:-74.0022, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259b4160028ab:0x414b171aac155dc0'});
+  } else {
+    day5Stops.push({time:'13:30', name:'Starbucks Reserve Roastery', desc:'焙煎工程が見学できる体験型旗艦店。', lat:40.7423, lon:-74.0056, transport:'subway', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259bf6dd90021:0x645ce21be1b31735'});
+    day5Stops.push({time:'14:30', name:'Chelsea Market', desc:'レンガ造り倉庫を改装したフードホール。昼食に。', lat:40.7424, lon:-74.0061, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259bf144c69c3:0x7e61762e972dc0a2'});
+    day5Stops.push({time:'16:00', name:'Little Island', desc:'ハドソン川に浮かぶ人工島の公園。', lat:40.7405, lon:-74.0141, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259319989e02f:0xbc9fdbef8d2af7b0'});
+    day5Stops.push({time:'16:45', name:'High Line', desc:'廃線となった高架鉄道を再生した遊歩道。', lat:40.7460, lon:-74.0075, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259c7840fb4e5:0x583f615c850a3c91'});
+    day5Stops.push({time:'18:00', name:'Vessel', desc:'Hudson Yards内の螺旋階段型モニュメント。', lat:40.7538, lon:-74.0022, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259b4160028ab:0x414b171aac155dc0'});
+  }
+  day5Stops.push({time:'19:30', name:'夕食', desc:'Hudson Yards周辺で。', lat:null, lon:null, transport:'walk'});
 
   return [
     { date:'8/22', weekday:'SAT', title:'到着・Times Square', area:'Times Square（徒歩）', color:'d1', note:null, stops:[
