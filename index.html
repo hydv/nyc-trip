@@ -131,12 +131,6 @@
         </div>
       </div>
 
-      <div class="section-label"><span class="num">PLAN</span><h2>CityPASS 3枠プラン選択</h2></div>
-      <div class="day-note" style="margin:14px 0;">
-        固定2枠は Empire State Building ＋ American Museum of Natural History（常に含まれる）。自由の女神は内部見学のため別途購入・CityPASS対象外。残り「選択3枠」の組み合わせを5パターンご用意しました。選ぶとスケジュールと地図に自動反映されます。
-      </div>
-      <div id="plan-selector"></div>
-
       <div id="schedule-root"></div>
 
       <div class="section-label"><span class="num">SUMMARY</span><h2>日程・エリア一覧</h2></div>
@@ -169,14 +163,14 @@ var PLANS = {
   D: { label:'展望台はESBで満足プラン', tag:'Top of the Rockは使わず体験重視',
        desc:'展望台はEmpire State Buildingのみに絞り、その分9/11メモリアルとCircle Lineクルーズの2つを追加。Day3の夜にゆとりができる。',
        totr:false, gugg:true, extra:['memorial','circle'] },
-  E: { label:'アートより体験重視プラン', tag:'Guggenheimは使わず歴史・乗り物重視',
-       desc:'美術館より歴史・体験型を優先する人向け。Guggenheimの代わりに9/11メモリアルとIntrepid博物館を追加。Day4の午後にゆとりができる。',
-       totr:true, gugg:false, extra:['memorial','intrepid'] }
+  E: { label:'アートより体験重視プラン', tag:'クルーズ・歴史・Guggenheim軽く立ち寄り',
+       desc:'9/11メモリアルとCircle Lineクルーズを追加。Guggenheimはロタンダ展示替え中のため、外観・入れるギャラリーのみ短時間で立ち寄り。',
+       totr:true, gugg:true, extra:['memorial','circle'] }
 };
-var currentPlan = 'A';
+var currentPlan = 'E';
 
 var MEMORIAL_STOP = {time:'15:15', name:'9/11 Memorial & Museum', desc:'追悼施設と博物館。CityPASS対象。One World Observatoryと同じ複合施設内。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7115776, lon:-74.0133362, transport:'ferry', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c25a1a3be8cb45:0xf430ccc5401d1eed'};
-var CIRCLE_STOP = {time:'08:00', name:'Circle Line Sightseeing Cruises', desc:'マンハッタン周遊クルーズ（Pier 83発）。船上からスカイラインと自由の女神を一望。CityPASS対象。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7628574, lon:-74.0015034, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259aab106f235:0xb50544c63c9d09eb'};
+var CIRCLE_STOP = {time:'08:00', name:'Circle Line：ランドマーククルーズ', desc:'Pier 83発、所要1.5時間。ダウンタウン〜ミッドタウンのスカイラインと自由の女神を船上から一望。MoMA(10:30)前に終わる長さで選定。CityPASS対象。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7628574, lon:-74.0015034, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259aab106f235:0xb50544c63c9d09eb'};
 var INTREPID_STOP = {time:'08:30', name:'Intrepid Sea, Air & Space Museum', desc:'退役空母を改装した博物館。戦闘機・コンコルド・スペースシャトルを展示。CityPASS対象。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7648801, lon:-74.0008306, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c2584ed560199f:0x22362b652743ff1'};
 var ESB_STOP = {time:'09:00', name:'Empire State Building', desc:'NYを象徴する高層ビルの展望台（86階／102階）。CityPASS対象（固定枠）。', tag:'事前予約推奨・CityPASS対象', citypass:true, lat:40.7484405, lon:-73.9856644, transport:'none', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c259a9b3117469:0xd134e199a405a163'};
 
@@ -222,7 +216,7 @@ function buildDays(planId){
     {time:'13:30', name:'昼食', desc:'The Met周辺で。', lat:null, lon:null, transport:'walk'}
   ];
   if(p.gugg){
-    day4Stops.push({time:'15:00', name:'Solomon R. Guggenheim Museum', desc:'フランク・ロイド・ライト設計の螺旋型美術館。', tag:'CityPASS対象', citypass:true, lat:40.7830, lon:-73.9590, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258a29a5e9e99:0x4a01c8df6fb3cb8'});
+    day4Stops.push({time:'15:00', name:'Solomon R. Guggenheim Museum', desc:'フランク・ロイド・ライト設計の螺旋型美術館。名物の螺旋ロタンダは展示替えのため一時閉鎖中（〜9/17）。外観・入場可能なギャラリーのみ短時間で立ち寄り。', tag:'CityPASS対象・ロタンダ休止中', citypass:true, lat:40.7830, lon:-73.9590, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258a29a5e9e99:0x4a01c8df6fb3cb8'});
   }
   day4Stops.push({time:'16:30', name:'セントラルパーク横断', desc:'散策しながら公園を東から西へ移動。', lat:null, lon:null, transport:'walk'});
   day4Stops.push({time:'17:00', name:'American Museum of Natural History', desc:'恐竜化石など展示する大型自然史博物館。', tag:'CityPASS対象（固定枠）', citypass:true, lat:40.7813, lon:-73.9740, transport:'walk', map:'https://www.google.com/maps/place//data=!4m2!3m1!1s0x89c258f4b00f7a09:0xa27d8172624c5db1'});
@@ -413,6 +407,7 @@ function renderMap(){
 /* ================= SCHEDULE ================= */
 function renderPlanSelector(){
   var root = document.getElementById('plan-selector');
+  if(!root) return;
   root.innerHTML = Object.keys(PLANS).map(function(key){
     var p = PLANS[key];
     var active = key === currentPlan;
